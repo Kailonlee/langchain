@@ -187,7 +187,7 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
     # please refer to
     # https://github.com/openai/openai-cookbook/blob/main/examples/Embedding_long_inputs.ipynb
     def _get_len_safe_embeddings(
-        self, texts: List[str], *, engine: str, chunk_size: Optional[int] = None
+        self, texts: List[str], *, chunk_size: Optional[int] = None
     ) -> List[List[float]]:
         embeddings: List[List[float]] = [[] for _ in range(len(texts))]
         try:
@@ -216,7 +216,7 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
                 response = embed_with_retry(
                     self,
                     input=tokens[i : i + _chunk_size],
-                    engine=self.deployment,
+                    model=self.deployment,
                     request_timeout=self.request_timeout,
                     headers=self.headers,
                 )
@@ -234,7 +234,7 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
                     average = embed_with_retry(
                         self,
                         input="",
-                        engine=self.deployment,
+                        model=self.deployment,
                         request_timeout=self.request_timeout,
                         headers=self.headers,
                     )["data"][0]["embedding"]
@@ -253,11 +253,11 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
                 "Please install it with `pip install tiktoken`."
             )
 
-    def _embedding_func(self, text: str, *, engine: str) -> List[float]:
+    def _embedding_func(self, text: str, *, model: str) -> List[float]:
         """Call out to OpenAI's embedding endpoint."""
         # handle large input text
         if len(text) > self.embedding_ctx_length:
-            return self._get_len_safe_embeddings([text], engine=engine)[0]
+            return self._get_len_safe_embeddings([text])[0]
         else:
             if self.model.endswith("001"):
                 # See: https://github.com/openai/openai-python/issues/418#issuecomment-1525939500
@@ -266,7 +266,7 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
             return embed_with_retry(
                 self,
                 input=[text],
-                engine=engine,
+                model=model,
                 request_timeout=self.request_timeout,
                 headers=self.headers,
             )["data"][0]["embedding"]
@@ -286,7 +286,7 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
         """
         # NOTE: to keep things simple, we assume the list may contain texts longer
         #       than the maximum context and use length-safe embedding function.
-        return self._get_len_safe_embeddings(texts, engine=self.deployment)
+        return self._get_len_safe_embeddings(texts)
 
     def embed_query(self, text: str) -> List[float]:
         """Call out to OpenAI's embedding endpoint for embedding query text.
@@ -297,5 +297,5 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
         Returns:
             Embedding for the text.
         """
-        embedding = self._embedding_func(text, engine=self.deployment)
+        embedding = self._embedding_func(text, model=self.deployment)
         return embedding
